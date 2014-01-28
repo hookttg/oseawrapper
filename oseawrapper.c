@@ -23,11 +23,6 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	/*if (access(argv[2], W_OK) == -1) {
-		fprintf(stderr, "Unable to open file '%s' for writing. Aborting.\n", argv[2]);
-		exit(EXIT_FAILURE);
-	}*/
-
 	/* Open files */
 	input_data = fopen(argv[1], "r");
 	output_data = fopen(argv[2], "w");
@@ -37,22 +32,57 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
+	/* Find out the number of samples in the input file */
+	/* http://stackoverflow.com/a/4278875 */
+	int number_of_samples = 0;
+	while (EOF != (fscanf(input_data, "%*[^\n]"), fscanf(input_data, "%*c")))
+		++number_of_samples;
+	rewind(input_data); /* Rewind the file pointer for reading */
+
+	/* Allocate memory for input data */
+	int *samples = NULL;
+	samples = (int *) malloc(number_of_samples * sizeof(int) );
+	if (samples == NULL) {
+		fprintf(stderr, "Unable to allocate enough memory to store %d samples from '%s'. Aborting.\n", number_of_samples, argv[1]);
+		exit(EXIT_FAILURE);
+	}
+
+	/* Dump contents of input_data into memory */
 	int sample = -1;
 	int index = 0;
 
 	while (!feof(input_data) ) {
-		index++;
 		
 		if (fscanf(input_data, "%d", &sample) != 1) {
 			break;
 		} else {
-			fprintf(stdout, "%d\t%d\n", index, sample);
+			samples[index++] = sample;
 		}
 	} /* while feof */
 
-	fprintf(stderr, "Parsed %d samples.\n", index);
+	/* Sanity check for input data loading */
+	if (index != number_of_samples) {
+		fprintf(stderr, "Parsed %d samples, but expected to find %d samples. Did '%s' change? Continuing.\n", index, number_of_samples, argv[1]);
+	}
+
+	/* Run OSEA */
+	int beat_type = -1;
+	int beat_match = -1;
+	int delay = -1;
+	ResetBDAC();
+
+	fprintf(stdout, "#index\tdelay\ttype\tmatch\n");
+
+	for (index = 0; index < number_of_samples; index++) {
+		delay = BeatDetectAndClassify(samples[index], &beat_type, &beat_match);
+
+		fprintf(stdout, "%d\t%d\t%d\t%d\n", index, delay, beat_type, beat_match);
+	}
 
 	/* Clean up */
+	free(samples);
+	samples = NULL;
+
 	fclose(input_data);
 	fclose(output_data);
 
