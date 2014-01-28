@@ -6,6 +6,9 @@
 void ResetBDAC(void);
 int BeatDetectAndClassify(int ecg_sample, int *beat_type, int *beat_match);
 
+/* External interpretation structures */
+const char *beat_type_string[] = {"No beat detected", "Normal", "?", "?", "?", "Premature ventricular contraction", "?", "?", "?", "?", "?", "?", "?", "Unknown"};
+
 int main(int argc, char **argv) 
 {
 	/* File variables */
@@ -71,12 +74,14 @@ int main(int argc, char **argv)
 	int delay = -1;
 	ResetBDAC();
 
-	fprintf(stdout, "#index\tdelay\ttype\tmatch\n");
+	fprintf(stdout, "#index\tdelay\ttype\tmatch(dbg)\n");
 
 	for (index = 0; index < number_of_samples; index++) {
 		delay = BeatDetectAndClassify(samples[index], &beat_type, &beat_match);
 
-		fprintf(stdout, "%d\t%d\t%d\t%d\n", index, delay, beat_type, beat_match);
+		if (delay != 0) {
+			fprintf(stdout, "%d\t%d\t%s\t%d\n", index, delay, beat_type_string[beat_type], beat_match);
+		}
 	}
 
 	/* Clean up */
