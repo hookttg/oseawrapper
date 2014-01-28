@@ -14,10 +14,11 @@ int main(int argc, char **argv)
 	/* File variables */
 	FILE *input_data;
 	FILE *output_data;
+	int use_stdout = 0;
 
 	/* Check arguments */
-	if (argc != 3) {
-		fprintf(stderr, "Usage: %s [input datafile] [output datafile]\n", argv[0]);
+	if ((argc < 2) && (argc > 3)) {
+		fprintf(stderr, "Usage: %s [input datafile] (output datafile)\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
 
@@ -28,7 +29,11 @@ int main(int argc, char **argv)
 
 	/* Open files */
 	input_data = fopen(argv[1], "r");
-	output_data = fopen(argv[2], "w");
+	if (argc == 2) {
+		use_stdout = 1;
+	} else {
+		output_data = fopen(argv[2], "w");
+	}
 
 	if (input_data == NULL) {
 		fprintf(stderr, "Error reading input file '%s'. Aborting.\n", argv[1]);
@@ -74,22 +79,30 @@ int main(int argc, char **argv)
 	int delay = -1;
 	ResetBDAC();
 
-	fprintf(stdout, "#index\tdelay\ttype\tmatch(dbg)\n");
+	if (use_stdout) {
+		fprintf(stdout, "#index\tdelay\ttype\tmatch(dbg)\n");
+	} else {
+		fprintf(output_data, "#index\tdelay\ttype\tmatch(dbg)\n");
+	}
 
 	for (index = 0; index < number_of_samples; index++) {
 		delay = BeatDetectAndClassify(samples[index], &beat_type, &beat_match);
 
 		if (delay != 0) {
-			fprintf(stdout, "%d\t%d\t%s\t%d\n", index, delay, beat_type_string[beat_type], beat_match);
+			if (use_stdout) {
+				fprintf(stdout, "%d\t%d\t%s\t%d\n", index, delay, beat_type_string[beat_type], beat_match);
+			} else {
+				fprintf(output_data, "%d\t%d\t%s\t%d\n", index, delay, beat_type_string[beat_type], beat_match);
+			}
 		}
-	}
+	} /* for index..number_of_samples */
 
 	/* Clean up */
 	free(samples);
 	samples = NULL;
 
 	fclose(input_data);
-	fclose(output_data);
+	if (!use_stdout) fclose(output_data);
 
 	exit(EXIT_SUCCESS);
 }
