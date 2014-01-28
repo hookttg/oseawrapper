@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 	int use_stdout = 0;
 
 	/* Check arguments */
-	if ((argc < 2) && (argc > 3)) {
+	if ((argc < 2) || (argc > 3)) {
 		fprintf(stderr, "Usage: %s [input datafile] (output datafile)\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
