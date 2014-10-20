@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
 
 /* External function prototypes from OSEA */
 void ResetBDAC(void);
@@ -31,8 +32,8 @@ const char *beat_type_string[] = {"No beat detected", "Normal", "?", "?", "?", "
 int main(int argc, char **argv) 
 {
 	/* File variables */
-	FILE *input_data;
-	FILE *output_data;
+	FILE *input_data = NULL;
+	FILE *output_data = NULL;
 	int use_stdout = 0;
 
 	/* Check arguments */
@@ -73,23 +74,42 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Unable to allocate enough memory to store %d samples from '%s'. Aborting.\n", number_of_samples, argv[1]);
 		exit(EXIT_FAILURE);
 	}
+	
+	double *float_samples = NULL;
+	float_samples = (double *) malloc(number_of_samples * sizeof(double) );
+	if (float_samples == NULL) {
+		fprintf(stderr, "Unable to allocate enough memory to store %d samples from '%s'. Aborting.\n", number_of_samples, argv[1]);
+		exit(EXIT_FAILURE);
+	}
 
 	/* Dump contents of input_data into memory */
-	int sample = -1;
+	double sample;
 	int index = 0;
 
 	while (!feof(input_data) ) {
 		
-		if (fscanf(input_data, "%d", &sample) != 1) {
+		if (fscanf(input_data, "%lf\n", &sample) != 1) {
 			break;
 		} else {
-			samples[index++] = sample;
+			float_samples[index] = sample;
+			index++;
 		}
 	} /* while feof */
 
 	/* Sanity check for input data loading */
 	if (index != number_of_samples) {
 		fprintf(stderr, "Parsed %d samples, but expected to find %d samples. Did '%s' change? Continuing.\n", index, number_of_samples, argv[1]);
+	}
+	
+	/* Convert samples to integers for OSEA */
+	/* Find largest number */
+	double maximum_sample = 0;
+	for (index = 0; index < number_of_samples; index++) {
+		if (float_samples[index] > maximum_sample) maximum_sample = float_samples[index];
+	}
+
+	for (index = 0; index < number_of_samples; index++) {
+		samples[index] = (int)floor((float_samples[index] / maximum_sample) * 1000);
 	}
 
 	/* Run OSEA */
