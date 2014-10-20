@@ -1,4 +1,4 @@
-CC = gcc
+CC = gcc -O2 -lm -Wall
 
 ETOBJS = analbeat.o bdac.o classify.o match.o noisechk.o postclas.o qrsfilt.o rythmchk.o
 
